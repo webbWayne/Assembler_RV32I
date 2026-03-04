@@ -1,3 +1,5 @@
+
+
 registers={
 "zero":"00000","ra":"00001","sp":"00010","gp":"00011",
 "tp":"00100","t0":"00101","t1":"00110","t2":"00111",
@@ -41,5 +43,14 @@ U_type={
 "auipc":"0010111"}
 J_type={
 "jal":"1101111"}
+instruction_type={"add":"R","sub":"R","sll":"R","slt":"R","sltu":"R","xor":"R","srl":"R","or":"R","and":"R","addi":"I","sltiu":"I","lw":"I","jalr":"I","sw":"S","beq":"B","bne":"B","blt":"B","bge":"B","bltu":"B","bgeu":"B","lui":"U","auipc":"U","jal":"J"}
+encoder={
+"R":encode_R,
+"I":encode_I,
+"S":encode_S,
+"B":encode_B,
+"U":encode_U,
+"J":encode_J
+}
 labels = {}
 pc=0
