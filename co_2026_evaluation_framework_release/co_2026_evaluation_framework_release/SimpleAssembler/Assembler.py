@@ -1,3 +1,6 @@
+labels = {}
+
+pc = 0
 registers={
 "zero":"00000","ra":"00001","sp":"00010","gp":"00011",
 "tp":"00100","t0":"00101","t1":"00110","t2":"00111",
@@ -9,7 +12,7 @@ registers={
 "s10":"11010","s11":"11011","t3":"11100","t4":"11101",
 "t5":"11110","t6":"11111"
 }
-#Format - (funct7, funct3, opcode)
+#Format-(funct7, funct3, opcode)
 R_type={
 "add":("0000000","000","0110011"),
 "sub":("0100000","000","0110011"),
@@ -21,7 +24,7 @@ R_type={
 "or":("0000000","110","0110011"),
 "and":("0000000","111","0110011")
 }
-#Format - (funct3, opcode)
+#Format-(funct3, opcode)
 I_type={
 "addi":("000","0010011"),
 "sltiu":("011","0010011"),
@@ -41,17 +44,16 @@ U_type={
 "auipc":"0010111"}
 J_type={
 "jal":"1101111"}
-instruction_type={"add":"R","sub":"R","sll":"R","slt":"R","sltu":"R","xor":"R","srl":"R","or":"R","and":"R","addi":"I","sltiu":"I","lw":"I","jalr":"I","sw":"S","beq":"B","bne":"B","blt":"B","bge":"B","bltu":"B","bgeu":"B","lui":"U","auipc":"U","jal":"J"}
-encoder={
-"R":encode_R,
-"I":encode_I,
-"S":encode_S,
-"B":encode_B,
-"U":encode_U,
-"J":encode_J
-}
-labels ={}
-pc=0
+instruction_type={"add":"R","sub":"R","sll":"R","slt":"R","sltu":"R","xor":"R","srl":"R","or":"R","and":"R",
+"addi":"I","sltiu":"I","lw":"I","jalr":"I",
+"sw":"S",
+"beq":"B","bne":"B","blt":"B","bge":"B","bltu":"B","bgeu":"B",
+"lui":"U","auipc":"U",
+"jal":"J"}
+
+
+import sys
+instructions = []
 
 def isHalt(line):
     global instructions, pc
@@ -206,30 +208,33 @@ def encode_S(line):
     machinecode=imm_first+registers[rs2]+registers[rs1]+funct3+imm_second+opcode
 
     return machinecode
-
+    
 def encode_U(line):
     global pc
-    space_line = line.replace(","," ")
-    line_parts = space_line.split()
+    space_line=line.replace(","," ")
+    line_parts=space_line.split()
 
-    if (len(line_parts) != 3):
-        errorHandling("Syntax Error: Invalid number of operands.")
+    if(len(line_parts)!=3):
+        errorHandling("Syntax Error: Invalid U type Instruction")
 
-    ins = line_parts[0]
-    rd = line_parts[1]
+    ins=line_parts[0]
+    rd=line_parts[1]
+
     if rd not in registers:
-        errorHandling("Syntax error: Invalid register destination.")
+        errorHandling("Syntax error: Invalid register")
 
     try:
-        integer = int(line_parts[2])
+        integer=int(line_parts[2])
     except:
-        errorHandling("Syntax Error: Immediate not a valid integer.")
-    imm = n_bit_binary_converter(20, integer)
+        errorHandling("Syntax Error: Immediate not a valid integer")
 
-    opcode = U_type[ins]
-    binaryCode = imm + registers[rd] + opcode
+    imm=n_bit_binary_converter(20,integer)
 
-    return binaryCode
+    opcode=U_type[ins]
+
+    machinecode=imm+registers[rd]+opcode
+
+    return machinecode
 
 def encode_B(line):
     space_line = line.replace(","," ")
@@ -237,8 +242,8 @@ def encode_B(line):
     funct3, opcode = B_type[line_parts[0]]
 
     if len(line_parts) != 4:
-        errorHandling("Syntax Error: Inavlid number of operands.")
-    if (line_parts[1] or line_parts[2]) not in registers:
+        errorHandling("Syntax Error: Invalid number of operands.")
+    if (line_parts[1] not in registers) or (line_parts[2] not in registers):
         errorHandling("Syntax Error: Invalid register destination.")
 
     try:
@@ -249,12 +254,12 @@ def encode_B(line):
         else:
             errorHandling("Offset Error: Invalid branch offset!")
         
-    if offset % 4 != 0:
-        errorHandling("Offset Error: Offset should be a multiple of 4.")
+    if offset % 2 != 0:
+        errorHandling("Offset Error: Offset should be a multiple of 2.")
     try:
         imm = n_bit_binary_converter(13, offset)
     except ValueError:
-        errorHandling("Immediate out of range for J-type instruction")
+        errorHandling("Immediate out of range for B-type instruction")
 
     binaryCode = '' + imm[0] + imm[2:8] + registers[line_parts[2]] + registers[line_parts[1]] + funct3 + imm[8:12] + imm[1] + opcode
 
@@ -264,7 +269,7 @@ def encode_J(line):
     space_line = line.replace(","," ")
     line_parts = space_line.split()
     if len(line_parts) != 3:
-        errorHandling("Syntax Error: Inavlid number of operands.")
+        errorHandling("Syntax Error: Invalid number of operands.")
     if line_parts[1] not in registers:
         errorHandling("Syntax Error: Invalid register destination.")
     opcode = J_type[line_parts[0]]
@@ -277,8 +282,8 @@ def encode_J(line):
         else:
             errorHandling("Offset Error: Invalid branch offset!")
         
-    if offset % 4 != 0:
-        errorHandling("Offset Error: Offset should be a multiple of 4.")
+    if offset % 2 != 0:
+        errorHandling("Offset Error: Offset should be a multiple of 2.")
     try:
         imm = n_bit_binary_converter(21, offset)
     except ValueError:
@@ -287,6 +292,15 @@ def encode_J(line):
     binaryCode = '' + imm[0] + imm[10:20] + imm[9] + imm[1:9] + registers[line_parts[1]] + opcode
 
     return binaryCode
+
+encoder={
+"R":encode_R,
+"I":encode_I,
+"S":encode_S,
+"B":encode_B,
+"U":encode_U,
+"J":encode_J
+}
 
 def first_pass(lines):
     global labels, pc, instructions
