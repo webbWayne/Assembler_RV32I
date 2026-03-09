@@ -100,6 +100,87 @@ def n_bit_binary_converter(n, num):
     
     return binary
 
+def encode_U(line):
+    global pc
+    space_line = line.replace(","," ")
+    line_parts = space_line.split()
+
+    if (len(line_parts) != 3):
+        errorHandling("Syntax Error: Invalid number of operands.")
+
+    ins = line_parts[0]
+    rd = line_parts[1]
+    if rd not in registers:
+        errorHandling("Syntax error: Invalid register destination.")
+
+    try:
+        integer = int(line_parts[2])
+    except:
+        errorHandling("Syntax Error: Immediate not a valid integer.")
+    imm = n_bit_binary_converter(20, integer)
+
+    opcode = U_type[ins]
+    binaryCode = imm + registers[rd] + opcode
+
+    return binaryCode
+
+def encode_B(line):
+    space_line = line.replace(","," ")
+    line_parts = space_line.split()
+    funct3, opcode = B_type[line_parts[0]]
+
+    if len(line_parts) != 4:
+        errorHandling("Syntax Error: Inavlid number of operands.")
+    if (line_parts[1] or line_parts[2]) not in registers:
+        errorHandling("Syntax Error: Invalid register destination.")
+
+    try:
+        offset = int(line_parts[3], 0)
+    except ValueError:
+        if line_parts[3] in labels:
+            offset = labels[line_parts[3]] - pc
+        else:
+            errorHandling("Offset Error: Invalid branch offset!")
+        
+    if offset % 4 != 0:
+        errorHandling("Offset Error: Offset should be a multiple of 4.")
+    try:
+        imm = n_bit_binary_converter(13, offset)
+    except ValueError:
+        errorHandling("Immediate out of range for J-type instruction")
+
+    binaryCode = '' + imm[0] + imm[2:8] + registers[line_parts[2]] + registers[line_parts[1]] + funct3 + imm[8:12] + imm[1] + opcode
+
+    return binaryCode
+
+def encode_J(line):
+    space_line = line.replace(","," ")
+    line_parts = space_line.split()
+    if len(line_parts) != 3:
+        errorHandling("Syntax Error: Inavlid number of operands.")
+    if line_parts[1] not in registers:
+        errorHandling("Syntax Error: Invalid register destination.")
+    opcode = J_type[line_parts[0]]
+
+    try:
+        offset = int(line_parts[2], 0)
+    except ValueError:
+        if line_parts[2] in labels:
+            offset = labels[line_parts[2]] - pc
+        else:
+            errorHandling("Offset Error: Invalid branch offset!")
+        
+    if offset % 4 != 0:
+        errorHandling("Offset Error: Offset should be a multiple of 4.")
+    try:
+        imm = n_bit_binary_converter(21, offset)
+    except ValueError:
+        errorHandling("Immediate out of range for J-type instruction")
+
+    binaryCode = '' + imm[0] + imm[10:20] + imm[9] + imm[1:9] + registers[line_parts[1]] + opcode
+
+    return binaryCode
+
 def first_pass(lines):
     global labels, pc, instructions
     for line in lines:
