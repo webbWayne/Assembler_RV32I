@@ -100,6 +100,113 @@ def n_bit_binary_converter(n, num):
     
     return binary
 
+def encode_R(line):
+    global pc
+    space_line=line.replace(","," ")
+    line_parts=space_line.split()
+
+    if(len(line_parts)!=4):
+        errorHandling("Syntax Error: Invalid R type Instruction")
+
+    ins=line_parts[0]
+    rd=line_parts[1]
+    rs1=line_parts[2]
+    rs2=line_parts[3]
+
+    if (rd not in registers) or (rs1 not in registers) or (rs2 not in registers):
+        errorHandling("Syntax Error: Invalid register")
+
+    funct7=R_type[ins][0]
+    funct3=R_type[ins][1]
+    opcode=R_type[ins][2]
+
+    machinecode=funct7+registers[rs2]+registers[rs1]+funct3+registers[rd]+opcode
+
+    return machinecode
+    
+def encode_I(line):
+    global pc
+    space_line=line.replace(","," ")
+    line_parts=space_line.split()	 
+
+    if(line_parts[0] in ("addi","sltiu","jalr")):
+        if(len(line_parts)!=4):
+            errorHandling("Syntax Error: Invalid I type Instruction")
+        ins=line_parts[0]
+        rd=line_parts[1]
+        rs1=line_parts[2]
+        if (rd not in registers) or (rs1 not in registers):
+            errorHandling("Syntax Error: Invalid register")
+        
+        try:
+            integer=int(line_parts[3])
+        except:
+            errorHandling("Syntax Error: Immediate not a valid integer")
+        imm=n_bit_binary_converter(12,int(integer))
+    else:
+        if(len(line_parts)!=3):
+            errorHandling("Syntax Error: Invalid R type Instruction")
+        ins=line_parts[0]
+        rd=line_parts[1]
+        operand = line_parts[2]
+        if "(" not in operand or ")" not in operand:
+            errorHandling("Syntax error: Invalid memory operand")
+        replaced_string=line_parts[2].replace(")","")
+        extra_string_list=replaced_string.split("(")
+        if len(extra_string_list)!=2:
+            errorHandling("Syntax error: Invalid memory operand")
+        try:
+            integer=int(extra_string_list[0])
+        except:
+            errorHandling("Syntax Error: Immediate not a valid integer")
+        imm=n_bit_binary_converter(12,int(extra_string_list[0]))
+        rs1=extra_string_list[1]
+        if (rs1 not in registers) or (rd not in registers):
+            errorHandling("Syntax error: Invalid register")
+    
+    funct3=I_type[ins][0]
+    opcode=I_type[ins][1]
+
+    machinecode=imm+registers[rs1]+funct3+registers[rd]+opcode
+
+    return machinecode
+
+def encode_S(line):
+    global pc
+    space_line=line.replace(","," ")
+    line_parts=space_line.split()
+
+    if(len(line_parts)!=3):
+        errorHandling("Syntax Error: Invalid S type Instruction")
+
+    ins=line_parts[0]
+    rs2=line_parts[1]
+    if rs2 not in registers:
+        errorHandling("Syntax error: Invalid register")
+    if "(" not in line_parts[2] or ")" not in line_parts[2]:
+        errorHandling("Syntax error: Invalid memory operand")
+    replaced_string=line_parts[2].replace(")","")
+    extra_string_list=replaced_string.split("(")
+    if len(extra_string_list)!=2:
+        errorHandling("Syntax error: Invalid memory operand")
+    try:
+        integer=int(extra_string_list[0])
+    except:
+        errorHandling("Syntax Error: Immediate not a valid integer")
+    imm=n_bit_binary_converter(12,integer)
+    imm_first=imm[0:7]
+    imm_second=imm[7:12]
+    rs1=extra_string_list[1]
+    if rs1 not in registers:
+        errorHandling("Syntax error: Invalid register")
+    
+    funct3=S_type[ins][0]
+    opcode=S_type[ins][1]
+
+    machinecode=imm_first+registers[rs2]+registers[rs1]+funct3+imm_second+opcode
+
+    return machinecode
+
 def encode_U(line):
     global pc
     space_line = line.replace(","," ")
