@@ -53,6 +53,30 @@ encoder={
 labels ={}
 pc=0
 
+def isHalt(line):
+    global instructions, pc
+    line = line.replace(",", " ")
+    line_parts = line.split()
+
+    if(len(line_parts) != 4): return False
+    
+    ins = line_parts[0]
+    rs1 = line_parts[1]
+    rs2 = line_parts[2]
+    offset = line_parts[3]
+
+    if(ins == 'beq' and rs1 == 'zero' and rs2 == 'zero'):
+        if(offset == '0'): return True
+        elif(offset in labels):
+            if(labels[offset] - pc == 0): return True
+
+
+    return False
+
+def errorHandling(message):
+    print(f"Error occured on line {pc//4 + 1}, {message}")
+    sys.exit(1)
+
 def n_bit_binary_converter(n, num):
     global pc
     if num not in range(-1*2**(n-1),2**(n-1)):
