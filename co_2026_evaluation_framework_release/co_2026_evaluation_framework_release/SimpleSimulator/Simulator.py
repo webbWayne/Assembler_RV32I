@@ -239,6 +239,19 @@ def execute_J(instr):
     return_addrress = PC + 4
     registers[rd] = return_addrress%(2**32)
     PC = PC + offset
+
+opcodeMAPPING={
+    "0110011":execute_R,
+    "0000011":execute_I_load,
+    "0010011":execute_I_alu,
+    "1100111":execute_I_jalr,
+    "0100011":execute_S,
+    "1100011":execute_B,
+    "0110111":execute_U_lui,
+    "0010111":execute_U_auipc,
+    "1101111":execute_J,
+}
+
 def printCurrent():
     #format converts PC to binary type with leading zeroes and 32 size.
     line = "0b" + format(PC,'032b')
