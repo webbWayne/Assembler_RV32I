@@ -69,6 +69,97 @@ def execute_R(instr):
         errorHANDLING(f"Error! unknown R Type funct7={funct7} funct3={funct3} at PC={PC}")
     registers[rd]=ans%(2**32)
     PC=PC+4
+
+def execute_B(instr):
+    global PC
+    bit_12 = instr[0]
+    bit_11 = instr[24]
+    bits_10_5 = instr[1:7]
+    bits_4_1 = instr[20:24]
+    imm_bits = bit_12 + bit_11 + bits_10_5 + bits_4_1 + "0"
+    imm1 = int(imm_bits, 2)
+    offset = signEXTEND(imm1, 13)
+    rs2 = int(instr[7:12], 2)
+    rs1 = int(instr[12:17], 2)
+    funct3 = instr[17:20]
+    v1 = registers[rs1]
+    v2 = registers[rs2]
+    if rs1 == 0 and rs2 == 0 and offset == 0 and funct3 == "000":
+        registers[0] = 0
+        printCurrent()
+        base_addrress = 0x00010000
+        for i in range(32):
+            addrress = base_addrress+(i * 4)
+            val=memory.get(addrress, 0)
+            out_file.write(f"0x{addrress:08X}:0b{format(val, '032b')}\n")
+        out_file.close()
+        sys.exit(0)
+    take_branch = False
+    if funct3 == "000":
+        if v1 == v2:
+            take_branch=True
+    elif funct3 == "001":
+        if v1 != v2:
+            take_branch = True
+    elif funct3 == "100":
+        signed_v1 = signEXTEND(v1, 32)
+        signed_v2 = signEXTEND(v2, 32)
+        if signed_v1 < signed_v2:
+            take_branch = True
+    elif funct3 == "101":
+        signed_v1 = signEXTEND(v1, 32)
+        signed_v2 = signEXTEND(v2, 32)
+        if signed_v1 >= signed_v2:
+            take_branch = True
+    elif funct3 == "110":
+        if v1 < v2:
+            take_branch = True
+    elif funct3 == "111":
+        if v1 >= v2:
+            take_branch = True
+    else:
+        errorHANDLING(f"Error! unknown B-type funct3={funct3} at PC={PC}")
+    if take_branch:
+        PC = PC + offset
+    else:
+        PC = PC + 4
+
+def execute_U_lui(instr):
+    global PC
+    upper_bits = instr[0:20]
+    imm_val = int(upper_bits, 2)
+    shifted = imm_val * 4096
+    rd_bits = instr[20:25]
+    rd=int(rd_bits, 2)
+    registers[rd] = shifted%(2**32)
+    PC = PC + 4
+
+def execute_U_auipc(instr):
+    global PC
+    upper_bits = instr[0:20]
+    imm_val = int(upper_bits, 2)
+    shifted = imm_val * 4096
+    rd_bits = instr[20:25]
+    rd = int(rd_bits, 2)
+    ans = PC+shifted
+    ans = ans%(2**32)
+    registers[rd] = ans
+    PC = PC + 4
+
+def execute_J(instr):
+    global PC
+    bit_20 = instr[0]
+    bits_19_12 = instr[12:20]
+    bit_11 = instr[11]
+    bits_10_1 = instr[1:11]
+    imm_bits = bit_20 + bits_19_12 + bit_11 + bits_10_1 + "0"
+    imm1 = int(imm_bits, 2)
+    offset = signEXTEND(imm1, 21)
+    rd_bits = instr[20:25]
+    rd = int(rd_bits, 2)
+    return_addrress = PC + 4
+    registers[rd] = return_addrress%(2**32)
+    PC = PC + offset
 def printCurrent():
     #format converts PC to binary type with leading zeroes and 32 size.
     line = "0b" + format(PC,'032b')
