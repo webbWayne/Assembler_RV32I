@@ -70,6 +70,85 @@ def execute_R(instr):
     registers[rd]=ans%(2**32)
     PC=PC+4
 
+def execute_I_alu(ins):
+    global PC
+    imm=signEXTEND(int(ins[0:12],2),12)
+    rs1=int(ins[12:17],2)
+    funct3=ins[17:20]
+    rd=int(ins[20:25],2)
+    base_address=registers[rs1]
+    final=0
+
+    if funct3=="000":
+        final=base_address+imm
+    elif funct3=="011":
+        if base_address<imm%(2**32):
+            final=1
+        else:
+            final=0
+    else:
+        errorHANDLING(f"Error! unknown I ALU funct3={funct3} at PC={PC}")
+    
+    registers[rd]=final%(2**32)
+    PC=PC+4
+
+def execute_I_load(ins):
+    global PC
+    imm=signEXTEND(int(ins[0:12],2),12)
+    rs1=int(ins[12:17],2)
+    funct3=ins[17:20]
+    rd=int(ins[20:25], 2)
+    base_address=registers[rs1]
+    addrress=(base_address+imm)%(2**32)
+    if funct3=="010":
+        if addrress % 4!=0:
+            errorHANDLING(f"Error! unaligned memory access at address 0x{addrress:08X} at PC={PC}")
+        if not validMEMaddress(addrress):
+            errorHANDLING(f"Error! memory access out of valid range at address 0x{addrress:08X} at PC={PC}")
+        registers[rd]=(memory.get(addrress,0))%(2**32)
+    else:
+        errorHANDLING(f"Error! unknown I load funct3={funct3} at PC={PC}")
+    
+    PC=PC+4
+
+def execute_I_jalr(ins):
+    global PC
+    funct3=ins[17:20]
+    if funct3!="000":
+        errorHANDLING(f"Error! invalid JALR funct3={funct3} at PC={PC}")
+    
+    imm=signEXTEND(int(ins[0:12], 2), 12)
+    rs1=int(ins[12:17],2)
+    rd=int(ins[20:25],2)
+    base_address=registers[rs1]
+    destination=(base_address+imm)%(2**32)
+    
+    if destination%2!=0:
+        destination=destination-1
+    
+    registers[rd]=(PC+4)%(2**32)
+    PC=destination
+
+def execute_S(ins):
+    global PC
+    imm=signEXTEND(int(ins[0:7]+ins[20:25], 2), 12)
+    rs2=int(ins[7:12], 2)
+    rs1=int(ins[12:17], 2)
+    funct3=ins[17:20]
+    base_address=registers[rs1]
+    addrress=(base_address+imm)%(2**32)
+    if funct3=="010":
+        if addrress%4!=0:
+            errorHANDLING(f"Error! unaligned memory access at address 0x{addrress:08X} at PC={PC}")
+        if not validMEMaddress(addrress):
+            errorHANDLING(f"Error! memory access out of valid range at address 0x{addrress:08X} at PC={PC}")
+        
+        memory[addrress]=registers[rs2]% (2**32)
+    else:
+        errorHANDLING(f"Error! unknown S-type funct3={funct3} at PC={PC}")
+    
+    PC = PC + 4
+
 def execute_B(instr):
     global PC
     bit_12 = instr[0]
