@@ -1,3 +1,74 @@
+import sys
+
+PC=0
+registers=[0]*32
+memory={}
+instructions=[]
+registers[2]=0x0000017C
+out_file=None
+
+def errorHANDLING(message):
+    print(message)
+    if out_file:
+        out_file.close()
+    sys.exit(1)
+
+def signEXTEND(value,bits):
+    if value>=(1<<(bits-1)):
+        value-=(1<<bits)
+    return value
+
+def validMEMaddress(addr):
+    if 0x00000100<=addr<=0x0000017F:
+        return True
+    if 0x00010000<=addr<=0x0001007F:
+        return True
+    return False
+
+def execute_R(instr):
+    global PC
+    ans=0
+    funct7=instr[0:7]
+    funct3=instr[17:20]
+    rs2=int(instr[7:12], 2)
+    rd=int(instr[20:25], 2)
+    rs1=int(instr[12:17], 2)
+    value1=registers[rs1]
+    value2=registers[rs2]
+    if funct7=="0000000" and funct3=="000":
+        ans=value1+value2
+    elif funct7=="0000000" and funct3=="001":
+        shift_amount=value2 & 31
+        ans=value1<<shift_amount
+    elif funct7=="0100000" and funct3=="000":
+        ans=value1-value2
+    
+    elif funct7=="0000000" and funct3=="010":
+        signed_v1=signEXTEND(value1,32)
+        signed_v2=signEXTEND(value2,32)
+        if signed_v1<signed_v2:
+            ans=1
+        else:
+            ans=0
+    elif funct7=="0000000" and funct3=="011":
+        if value1<value2:
+            ans=1
+        else:
+            ans=0
+    elif funct7=="0000000" and funct3=="100":
+        ans=value1^value2
+    elif funct7=="0000000" and funct3=="101":
+        shift_amount=value2 & 31
+        unsigned_v1=value1%(2**32)
+        ans=unsigned_v1>>shift_amount
+    elif funct7=="0000000" and funct3=="110":
+        ans=value1 | value2
+    elif funct7=="0000000" and funct3=="111":
+        ans=value1 & value2
+    else:
+        errorHANDLING(f"Error! unknown R Type funct7={funct7} funct3={funct3} at PC={PC}")
+    registers[rd]=ans%(2**32)
+    PC=PC+4
 def printCurrent():
     #format converts PC to binary type with leading zeroes and 32 size.
     line = "0b" + format(PC,'032b')
